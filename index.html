@@ -32,7 +32,7 @@
 
         <script>
 
-            var enableControls = false;
+            var enableControls = true;
 
             var world;
             var cannonDebugRenderer;
@@ -64,6 +64,8 @@
             var groundLocation = new THREE.Vector3(20,0,0);
 
 
+            var diceBoxLocation = new CANNON.Vec3();
+            var diceBoxSize = 20;
 
 
             var log = function() {
@@ -132,26 +134,21 @@
                 // scene
                 scene = new THREE.Scene();
 
-                cannonDebugRenderer = new THREE.CannonDebugRenderer( scene, world );
-
                 // camera
                 let w = 20;
                 let h = w * window.innerHeight / window.innerWidth;
                 camera = new THREE.OrthographicCamera( w / - 2, w / 2, h / 2, h / - 2, 0.5, 10000 );
                 camera.position.set(groundLocation.x,10,10)
-                // camera.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.PI/3);
                 camera.lookAt(groundLocation);
                 scene.add(camera);
 
-
                 // lights
                 scene.add( new THREE.AmbientLight( 0x666666 ) );
-
                 let light;
-                let d = 20;
+                let d = 6;
                 let pos = groundLocation.clone();
                 light = new THREE.DirectionalLight( 0xffffff, 1.35 );
-                light.position.copy( pos.x, pos.y+1, pos.z );
+                light.position.set( pos.x,pos.y+15,pos.z );
                 light.castShadow = true;
                 light.shadow.mapSize.width = 1024;
                 light.shadow.mapSize.height = 1024;
@@ -160,18 +157,23 @@
                 light.shadow.camera.top = d;
                 light.shadow.camera.bottom = -d;
                 light.shadow.camera.far = 3*d;
-                light.shadow.camera.near = d;
+                light.shadow.camera.near = 0.1;
+                var target = new THREE.Object3D();
+                target.position.copy(groundLocation);
+                light.target = target;
+                scene.add(target);
                 scene.add( light );
+                scene.add(new THREE.CameraHelper( light.shadow.camera ))
 
                 // floor
                 let geometry = new THREE.PlaneGeometry( 10, 10, 1, 1 );
-                let material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
-                let mesh = new THREE.Mesh( geometry, material );
-                mesh.castShadow = true;
-                mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI / 2);
-                mesh.receiveShadow = true;
-                mesh.position.copy(groundLocation)
-                scene.add(mesh);
+                let material = new THREE.ShadowMaterial({opacity: 0.5});
+                let floorMesh = new THREE.Mesh( geometry, material );
+                floorMesh.castShadow = true;
+                floorMesh.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI / 2);
+                floorMesh.receiveShadow = true;
+                floorMesh.position.copy(groundLocation)
+                scene.add(floorMesh);
 
                 let customMaterialOptions = {
                     specular: 0x172022,
@@ -181,12 +183,12 @@
                 };
 
                 let materials = [
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("hi1", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("hi2", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("hi3", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("hi4", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("hi5", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("hi6", "#FFF0F0", "#FF0000")}))
+                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("1", "#FFF0F0", "#FF0000")})),
+                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("2", "#FFF0F0", "#FF0000")})),
+                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("3", "#FFF0F0", "#FF0000")})),
+                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("4", "#FFF0F0", "#FF0000")})),
+                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("5", "#FFF0F0", "#FF0000")})),
+                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("6", "#FFF0F0", "#FF0000")}))
                 ];
 
                 let cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 1, 1 );
@@ -194,11 +196,13 @@
                 displayCudeMesh = new THREE.Mesh(cubeGeo, materials);
                 displayCudeMesh.castShadow = true;
                 displayCudeMesh.position.copy(groundLocation)
+                displayCudeMesh.position.y += 10
                 scene.add(displayCudeMesh);
 
                 renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
                 renderer.setClearColor( 0x000000, 0 ); // the default
                 renderer.setSize( window.innerWidth, window.innerHeight );
+                cannonDebugRenderer = new THREE.CannonDebugRenderer( scene, world );
 
                 container.appendChild( renderer.domElement );
 
@@ -223,7 +227,7 @@
             }
 
             function create_text_texture(text, color, back_color) {
-                let margin = 1;
+                let margin = 0.5;
                 let size = 15;
                 if (text == undefined) return null;
                 var canvas = document.createElement("canvas");
@@ -247,7 +251,7 @@
 
             function addWalls() {
 
-                let wallPos = 10;
+                let wallPos = diceBoxSize / 2;
 
                 //floor
                 var groundShape = new CANNON.Plane();
@@ -316,9 +320,6 @@
 
                 // When a body collides with another body, they both dispatch the "collide" event.
                 boxBody.addEventListener("collide",function(e){
-                    // console.log("The sphere just collided with the ground!");
-                    // console.log("Collided with body:",e.body);
-                    // console.log("Contact between bodies:",e.contact);
                 });
 
                 let customMaterialOptions = {
@@ -358,7 +359,7 @@
                 let quat = new THREE.Quaternion()
                 .setFromUnitVectors(
                     new THREE.Vector3(0,1,0),
-                    new THREE.Vector3(rand(), rand(), rand()).normalize());
+                    new THREE.Vector3(rand()*2-1, rand()*2-1, rand()*2-1).normalize());
                 boxBody.quaternion.copy(quat);
                 world.addBody(boxBody);
                 bodies.push(boxBody);
@@ -411,12 +412,6 @@
 
             }
 
-            function calculateDisplay(mesh) {
-                console.log("vertices", mesh.geometry.vertices)
-                console.log("faces", mesh.geometry.faces)
-                window.ff = mesh.geometry.faces
-            }
-
             function initInput() {
                 window.addEventListener( 'keyup', function ( event ) {
                     console.log(event.keyCode)
@@ -427,9 +422,7 @@
                             break;
                         // A
                         case 65:
-                            calculateDisplay(cubeMesh);
                             console.log(getDiceValue(cubeMesh));
-                            throwD20Dice();
                             break;
                         // Z
                         case 90:
