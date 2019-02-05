@@ -54,7 +54,8 @@
             var boxBody;
 
             // To be synced
-            var meshes=[], bodies=[];
+            var meshes = [], bodies = [];
+            var displayDiceMeshes = [];
             var displayDieRedMesh, displayDieYellowMesh;
 
             //Static, sync not required
@@ -78,43 +79,45 @@
             function finalizeResult() {}
 
 
-            function createDisplayDice() {
-                
+            function createMaterial(numOfFaces, fontColor, backColor) {
                 let customMaterialOptions = {
                     specular: 0x172022,
                     shininess: 40,
                     flatShading: true
                 };
-
-                let redMaterial = [];
-                for(let i = 1; i <= 6; i++) {
-                    redMaterial.push(new THREE.MeshPhongMaterial(
+                let material = [];
+                for(let i = 1; i <= numOfFaces; i++) {
+                    material.push(new THREE.MeshPhongMaterial(
                         Object.assign(customMaterialOptions, 
-                            {map: create_text_texture(i, "#FFFF00", "#FF0000")})));
+                            {map: create_text_texture(i, fontColor, backColor)})));
                 }
+                return material;
+            }
 
-                let yellowMaterial = [];
-                for(let i = 1; i <= 6; i++) {
-                    yellowMaterial.push(new THREE.MeshPhongMaterial(
-                        Object.assign(customMaterialOptions, 
-                            {map: create_text_texture(i, "#FF0000", "#FFFF00")})));
-                }
+            function createDisplayDice() {
+
+                let redMaterial = createMaterial(6,"#FFFF00", "#FF0000");
+
+                let yellowMaterial = createMaterial(6,"#FF0000", "#FFFF00");
 
                 let boxGeometry = new THREE.BoxGeometry( 1, 1, 1, 1, 1 );
-                
-                displayDieRedMesh = new THREE.Mesh(boxGeometry, redMaterial);
+
+                let displayDieRedMesh = new THREE.Mesh(boxGeometry, redMaterial);
                 displayDieRedMesh.castShadow = true;
                 displayDieRedMesh.position.copy(groundLocation)
                 displayDieRedMesh.position.y += 10
-                displayDieRedMesh.position.x -= 2
+                displayDieRedMesh.position.x -= 1
                 scene.add(displayDieRedMesh);
 
-                displayDieYellowMesh = new THREE.Mesh(boxGeometry, yellowMaterial);
+                let displayDieYellowMesh = new THREE.Mesh(boxGeometry, yellowMaterial);
                 displayDieYellowMesh.castShadow = true;
                 displayDieYellowMesh.position.copy(groundLocation)
                 displayDieYellowMesh.position.y += 10
-                displayDieYellowMesh.position.x += 2
+                displayDieYellowMesh.position.x += 1
                 scene.add(displayDieYellowMesh);
+
+                displayDiceMeshes.push(displayDieRedMesh);
+                displayDiceMeshes.push(displayDieYellowMesh);
 
             }
 
@@ -325,10 +328,12 @@
             }
 
 
-            function throwDice() {
+            function throwTwoD6Dice() {
 
-                // Create boxes
                 var mass = 100, radius = 1.3;
+                let materials = createMaterial(6,"#FFFF00", "#FF0000");
+                
+                // Create boxes
                 boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
                 boxBody = new CANNON.Body({ mass: mass, material: diceBodyMaterial });
                 boxBody.addShape(boxShape);
@@ -345,27 +350,30 @@
                 boxBody.linearDamping = 0.3;
                 boxBody.angularDamping = 0.3;
 
-                // When a body collides with another body, they both dispatch the "collide" event.
-                boxBody.addEventListener("collide",function(e){
-                });
-
-                let customMaterialOptions = {
-                    specular: 0x172022,
-                    color: 0xf0f0f0,
-                    shininess: 40,
-                    flatShading: true
-                };
-                let materials = [
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("1", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("2", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("3", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("4", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("5", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("6", "#FFF0F0", "#FF0000")}))
-                    ];
-                // cubes
                 var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 1, 1 );
-                var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x888888} );
+                cubeMesh = new THREE.Mesh(cubeGeo, materials);
+                cubeMesh.castShadow = true;
+                cubeMesh.body = boxBody;
+                meshes.push(cubeMesh);
+                scene.add(cubeMesh);
+
+                boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
+                boxBody = new CANNON.Body({ mass: mass, material: diceBodyMaterial });
+                boxBody.addShape(boxShape);
+                boxBody.position.set(10,13,0);
+                 quat = new THREE.Quaternion()
+                .setFromUnitVectors(
+                    new THREE.Vector3(0,1,0),
+                    new THREE.Vector3(rand(), rand(), rand()).normalize());
+                boxBody.quaternion.copy(quat);
+                world.addBody(boxBody);
+                bodies.push(boxBody);
+                boxBody.velocity.set(-30,0,Math.random()*20-10);
+                boxBody.angularVelocity.set(-3,1,5);
+                boxBody.linearDamping = 0.3;
+                boxBody.angularDamping = 0.3;
+
+                 cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 1, 1 );
                 cubeMesh = new THREE.Mesh(cubeGeo, materials);
                 cubeMesh.castShadow = true;
                 cubeMesh.body = boxBody;
@@ -395,41 +403,10 @@
                 boxBody.linearDamping = 0.3;
                 boxBody.angularDamping = 0.3;
 
-                let customMaterialOptions = {
-                    specular: 0x172022,
-                    color: 0xf0f0f0,
-                    shininess: 40,
-                    flatShading: true
-                };
 
-                let materials = [
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("X", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("S", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("1", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("2", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("3", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("4", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("5", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("6", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("7", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("8", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("9", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("10", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("11", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("12", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("13", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("14", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("15", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("16", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("17", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("18", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("19", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("20", "#FFF0F0", "#FF0000")}))
-
-                ];
-
+                
+                let materials = createMaterial(22,"#FFFF00", "#FF0000");
                 var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 1, 1 );
-                var cubeMaterial = new THREE.MeshPhongMaterial(customMaterialOptions);//{ color: 0x888888} );
 
                 cubeMesh = new THREE.Mesh(diceGeom, materials);
                 cubeMesh.castShadow = true;
@@ -445,16 +422,23 @@
                     switch ( event.keyCode ) {
                         // Q
                         case 81:
-                            throwDice();
+                            bodies.forEach((b) => world.removeBody(b));
+                            meshes.forEach((m) => scene.remove(m));
+                            bodies = [];
+                            meshes = [];
+                            throwTwoD6Dice();
                             break;
                         // A
                         case 65:
                             console.log(getDiceValue(cubeMesh));
+                            throwD20Dice();
                             break;
                         // Z
                         case 90:
                             bodies.forEach((b) => world.removeBody(b));
                             meshes.forEach((m) => scene.remove(m));
+                            bodies = [];
+                            meshes = [];
                             break;
                     }
                 }, false );
@@ -548,6 +532,9 @@
             }
 
             //author: teal
+            //I don't completely understand what is happening here, but I noticed that if
+            //you want to add a material to this geometery, the first two will need to be
+            //"empty" ones. The rest will actually be for the "dice faces"
             function chamfer_geom(vectors, faces, chamfer) {
                 var chamfer_vectors = [], chamfer_faces = [], corner_faces = new Array(vectors.length);
                 for (var i = 0; i < vectors.length; ++i) corner_faces[i] = [];
@@ -670,13 +657,10 @@
                 for(var i=0; i !== meshes.length; i++){
                     meshes[i].position.copy(bodies[i].position);
                     meshes[i].quaternion.copy(bodies[i].quaternion);
-                }
 
-                if(boxBody) {
-                    displayDieRedMesh.quaternion.copy(boxBody.quaternion);
-                    displayDieRedMesh.position.set(displayDieRedMesh.position.x,boxBody.position.y,displayDieRedMesh.position.z);
-                    displayDieYellowMesh.quaternion.copy(boxBody.quaternion);
-                    displayDieYellowMesh.position.set(displayDieYellowMesh.position.x,boxBody.position.y,displayDieYellowMesh.position.z);
+                    let displayMesh = displayDiceMeshes[i];
+                    displayMesh.quaternion.copy(bodies[i].quaternion);
+                    displayMesh.position.set(displayMesh.position.x,bodies[i].position.y,displayMesh.position.z);
                 }
             }
 
