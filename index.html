@@ -55,6 +55,7 @@
 
             // To be synced
             var meshes=[], bodies=[];
+            var displayDieRedMesh, displayDieYellowMesh;
 
             //Static, sync not required
             var staticMeshes=[], staticBodies=[];
@@ -67,36 +68,70 @@
             var diceBoxLocation = new CANNON.Vec3();
             var diceBoxSize = 20;
 
+            var resultsTable = {};
 
-            var log = function() {
-                 return console.log.apply( console, arguments );
-            };
-
-            function initScene() {}
-            function initCannon() {}
-
-            function initDice(config) {}
+            function createDice() {}
             function setInitialDiceConditions(diceBodies) {}
-            function createDiceThrowingArea() {}
 
             function startRoll() {}
             function checkDealine() {}
             function finalizeResult() {}
 
-            var resultsTable = {};
 
-            function createDiceBox() {
+            function createDisplayDice() {
+                
+                let customMaterialOptions = {
+                    specular: 0x172022,
+                    shininess: 40,
+                    flatShading: true
+                };
+
+                let redMaterial = [];
+                for(let i = 1; i <= 6; i++) {
+                    redMaterial.push(new THREE.MeshPhongMaterial(
+                        Object.assign(customMaterialOptions, 
+                            {map: create_text_texture(i, "#FFFF00", "#FF0000")})));
+                }
+
+                let yellowMaterial = [];
+                for(let i = 1; i <= 6; i++) {
+                    yellowMaterial.push(new THREE.MeshPhongMaterial(
+                        Object.assign(customMaterialOptions, 
+                            {map: create_text_texture(i, "#FF0000", "#FFFF00")})));
+                }
+
+                let boxGeometry = new THREE.BoxGeometry( 1, 1, 1, 1, 1 );
+                
+                displayDieRedMesh = new THREE.Mesh(boxGeometry, redMaterial);
+                displayDieRedMesh.castShadow = true;
+                displayDieRedMesh.position.copy(groundLocation)
+                displayDieRedMesh.position.y += 10
+                displayDieRedMesh.position.x -= 2
+                scene.add(displayDieRedMesh);
+
+                displayDieYellowMesh = new THREE.Mesh(boxGeometry, yellowMaterial);
+                displayDieYellowMesh.castShadow = true;
+                displayDieYellowMesh.position.copy(groundLocation)
+                displayDieYellowMesh.position.y += 10
+                displayDieYellowMesh.position.x += 2
+                scene.add(displayDieYellowMesh);
 
             }
 
+            var log = function() {
+                 return console.log.apply( console, arguments );
+            };
+
             initInput();
             initCannon();
-            init();
-            addWalls();
-            // addRampEntities();
+            initThree();
+            createDiceBox();
+            createDisplayDice();
             animate();
 
-            function rand() {return Math.random();}
+            function rand() {
+                return Math.random();
+            }
 
             function initCannon(){
                 // Setup our world
@@ -118,10 +153,9 @@
                     barrierBodyMaterial, diceBodyMaterial, {friction: 0, restitution: 0.2}));
                 world.addContactMaterial(new CANNON.ContactMaterial(
                     diceBodyMaterial, diceBodyMaterial, {friction: 0.0, restitution: 0.2}));
-
             }
 
-            function init() {
+            function initThree() {
 
                 container = document.createElement( 'div' );
                 document.body.appendChild( container );
@@ -165,7 +199,25 @@
                 scene.add( light );
                 scene.add(new THREE.CameraHelper( light.shadow.camera ))
 
-                // floor
+                light = new THREE.DirectionalLight( 0xffffff, 1.00 );
+                light.position.set( pos.x,pos.y+15,pos.z );
+                light.castShadow = true;
+                light.shadow.mapSize.width = 1024;
+                light.shadow.mapSize.height = 1024;
+                light.shadow.camera.left = -d;
+                light.shadow.camera.right = d;
+                light.shadow.camera.top = d;
+                light.shadow.camera.bottom = -d;
+                light.shadow.camera.far = 3*d;
+                light.shadow.camera.near = 0.1;
+                var target = new THREE.Object3D();
+                target.position.copy(groundLocation);
+                light.target = target;
+                scene.add(target);
+                scene.add( light );
+                scene.add(new THREE.CameraHelper( light.shadow.camera ))
+
+                // floor shadow catcher
                 let geometry = new THREE.PlaneGeometry( 10, 10, 1, 1 );
                 let material = new THREE.ShadowMaterial({opacity: 0.5});
                 let floorMesh = new THREE.Mesh( geometry, material );
@@ -174,30 +226,6 @@
                 floorMesh.receiveShadow = true;
                 floorMesh.position.copy(groundLocation)
                 scene.add(floorMesh);
-
-                let customMaterialOptions = {
-                    specular: 0x172022,
-                    color: 0xf0f0f0,
-                    shininess: 40,
-                    flatShading: true
-                };
-
-                let materials = [
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("1", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("2", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("3", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("4", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("5", "#FFF0F0", "#FF0000")})),
-                    new THREE.MeshPhongMaterial(Object.assign(customMaterialOptions, {map: create_text_texture("6", "#FFF0F0", "#FF0000")}))
-                ];
-
-                let cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 1, 1 );
-                let cubeMaterial = new THREE.MeshPhongMaterial(customMaterialOptions);//{ color: 0x888888} );
-                displayCudeMesh = new THREE.Mesh(cubeGeo, materials);
-                displayCudeMesh.castShadow = true;
-                displayCudeMesh.position.copy(groundLocation)
-                displayCudeMesh.position.y += 10
-                scene.add(displayCudeMesh);
 
                 renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
                 renderer.setClearColor( 0x000000, 0 ); // the default
@@ -212,44 +240,13 @@
                 renderer.gammaOutput = true;
                 renderer.shadowMap.enabled = true;
 
-                let axesHelper = new THREE.AxesHelper( 5 );
-                scene.add( axesHelper );
-
                 window.addEventListener( 'resize', onWindowResize, false );
                 window.addEventListener("mousemove", onMouseMove, false );
                 window.addEventListener("mousedown", onMouseDown, false );
                 window.addEventListener("mouseup", onMouseUp, false );
             }
 
-
-            function calc_texture_size(approx) {
-                return Math.pow(2, Math.floor(Math.log(approx) / Math.log(2)));
-            }
-
-            function create_text_texture(text, color, back_color) {
-                let margin = 0.5;
-                let size = 15;
-                if (text == undefined) return null;
-                var canvas = document.createElement("canvas");
-                var context = canvas.getContext("2d");
-                var ts = calc_texture_size(size + size * 2 * margin) * 2;
-                canvas.width = canvas.height = ts;
-                context.font = ts / (1 + 2 * margin) + "pt Arial";
-                context.fillStyle = back_color;
-                context.fillRect(0, 0, canvas.width, canvas.height);
-                context.textAlign = "center";
-                context.textBaseline = "middle";
-                context.fillStyle = color;
-                context.fillText(text, canvas.width / 2, canvas.height / 2);
-                if (text == '6' || text == '9') {
-                    context.fillText('  .', canvas.width / 2, canvas.height / 2);
-                }
-                var texture = new THREE.Texture(canvas);
-                texture.needsUpdate = true;
-                return texture;
-            }
-
-            function addWalls() {
+            function createDiceBox() {
 
                 let wallPos = diceBoxSize / 2;
 
@@ -297,6 +294,36 @@
                 world.addBody(groundBody);
 
             }
+
+            //author: teal
+            function calc_texture_size(approx) {
+                return Math.pow(2, Math.floor(Math.log(approx) / Math.log(2)));
+            }
+
+            //author: teal
+            function create_text_texture(text, color, back_color) {
+                let margin = 0.5;
+                let size = 15;
+                if (text == undefined) return null;
+                var canvas = document.createElement("canvas");
+                var context = canvas.getContext("2d");
+                var ts = calc_texture_size(size + size * 2 * margin) * 2;
+                canvas.width = canvas.height = ts;
+                context.font = ts / (1 + 2 * margin) + "pt Arial";
+                context.fillStyle = back_color;
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.textAlign = "center";
+                context.textBaseline = "middle";
+                context.fillStyle = color;
+                context.fillText(text, canvas.width / 2, canvas.height / 2);
+                if (text == '6' || text == '9') {
+                    context.fillText('  .', canvas.width / 2, canvas.height / 2);
+                }
+                var texture = new THREE.Texture(canvas);
+                texture.needsUpdate = true;
+                return texture;
+            }
+
 
             function throwDice() {
 
@@ -435,6 +462,7 @@
                 window.addEventListener( 'keyup', function () {}, false );
             }
 
+            //author: teal
             function getDiceValue(diceMesh) {
                 var vector = new THREE.Vector3(0, 1, 0);
                 var closest_face, closest_angle = Math.PI * 2;
@@ -452,6 +480,7 @@
                 return matindex;
             }
 
+            //author: teal
             function create_d6_geometry(radius) {
                 var vertices = [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
                         [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]];
@@ -460,6 +489,7 @@
                 return create_geom(vertices, faces, radius, 0.1, Math.PI / 4, 0.96);
             }
 
+            //author: teal
             function create_d20_geometry(radius) {
                 var t = (1 + Math.sqrt(5)) / 2;
                 var vertices = [[-1, t, 0], [1, t, 0 ], [-1, -t, 0], [1, -t, 0],
@@ -472,6 +502,7 @@
                 return create_geom(vertices, faces, radius, -0.2, -Math.PI / 4 / 2, 0.955);
             }
 
+            //author: teal
             function create_geom(vertices, faces, radius, tab, af, chamfer) {
                 var vectors = new Array(vertices.length);
                 for (var i = 0; i < vertices.length; ++i) {
@@ -486,6 +517,7 @@
             }
 
 
+            //author: teal
             function make_geom(vertices, faces, radius, tab, af) {
                 var geom = new THREE.Geometry();
                 for (var i = 0; i < vertices.length; ++i) {
@@ -515,6 +547,7 @@
                 return geom;
             }
 
+            //author: teal
             function chamfer_geom(vectors, faces, chamfer) {
                 var chamfer_vectors = [], chamfer_faces = [], corner_faces = new Array(vectors.length);
                 for (var i = 0; i < vectors.length; ++i) corner_faces[i] = [];
@@ -576,7 +609,7 @@
                 return { vectors: chamfer_vectors, faces: chamfer_faces };
             }
 
-
+            //author: teal
             function create_shape(vertices, faces, radius) {
                 var cv = new Array(vertices.length), cf = new Array(faces.length);
                 for (var i = 0; i < vertices.length; ++i) {
@@ -617,38 +650,6 @@
                 renderer.setSize( window.innerWidth, window.innerHeight );
             }
 
-            function saveCameraState() {
-                log("save")
-                localStorage.setItem("left", camera.left);
-                localStorage.setItem("right", camera.right);
-                localStorage.setItem("top", camera.top);
-                localStorage.setItem("bottom", camera.bottom);
-                localStorage.setItem("near", camera.near);
-                localStorage.setItem("far", camera.far);
-
-                localStorage.setItem("camX", camera.position.x);
-                localStorage.setItem("camY", camera.position.y);
-                localStorage.setItem("camZ", camera.position.z);
-            }
-
-            function restoreCameraState() {
-                if(localStorage.getItem("left")) {
-                    log("restore")
-                    camera.position.set(
-                        Number.parseFloat(localStorage.getItem('camX')),
-                        Number.parseFloat(localStorage.getItem('camY')),
-                        Number.parseFloat(localStorage.getItem('camZ')));
-
-                    camera.left = localStorage.getItem("left");
-                    camera.right = localStorage.getItem("right");
-                    camera.top = localStorage.getItem("top");
-                    camera.bottom = localStorage.getItem("bottom");
-                    camera.near = localStorage.getItem("near");
-                    camera.far = localStorage.getItem("far");
-                    camera.updateProjectionMatrix();
-                }
-            }
-
             function animate() {
                 requestAnimationFrame( animate );
 
@@ -672,12 +673,12 @@
                 }
 
                 if(boxBody) {
-                    displayCudeMesh.quaternion.copy(boxBody.quaternion);
-                    displayCudeMesh.position.set(displayCudeMesh.position.x,boxBody.position.y,displayCudeMesh.position.z);
+                    displayDieRedMesh.quaternion.copy(boxBody.quaternion);
+                    displayDieRedMesh.position.set(displayDieRedMesh.position.x,boxBody.position.y,displayDieRedMesh.position.z);
+                    displayDieYellowMesh.quaternion.copy(boxBody.quaternion);
+                    displayDieYellowMesh.position.set(displayDieYellowMesh.position.x,boxBody.position.y,displayDieYellowMesh.position.z);
                 }
             }
-
-
 
             function addRampEntities() {
                 function rad(deg) {return (deg/360)*Math.PI*2};
