@@ -32,8 +32,9 @@
 
         <script>
 
-            var enableControls = true;
+            var enableControls = false;
 
+            var EPSILON = 0.001;
             var world;
             var cannonDebugRenderer;
             var dt = 1 / 60;
@@ -69,6 +70,8 @@
             var diceBoxLocation = new CANNON.Vec3();
             var diceBoxSize = 20;
 
+            var resultsDeadlineTimeout;
+            var resultsCheckInterval;
             var resultsTable = {};
 
             function createDice() {}
@@ -82,7 +85,7 @@
             function createMaterial(numOfFaces, fontColor, backColor) {
                 let customMaterialOptions = {
                     specular: 0x172022,
-                    shininess: 40,
+                    shininess: 1,
                     flatShading: true
                 };
                 let material = [];
@@ -174,8 +177,8 @@
                 // camera
                 let w = 20;
                 let h = w * window.innerHeight / window.innerWidth;
-                camera = new THREE.OrthographicCamera( w / - 2, w / 2, h / 2, h / - 2, 0.5, 10000 );
-                camera.position.set(groundLocation.x,10,10)
+                camera = new THREE.OrthographicCamera( w / - 2, w / 2, h / 2, h / - 2, 0.1, 10000 );
+                camera.position.set(groundLocation.x,25,25)
                 camera.lookAt(groundLocation);
                 scene.add(camera);
 
@@ -198,12 +201,12 @@
                 var target = new THREE.Object3D();
                 target.position.copy(groundLocation);
                 light.target = target;
-                scene.add(target);
-                scene.add( light );
-                scene.add(new THREE.CameraHelper( light.shadow.camera ))
+                // scene.add(target);
+                // scene.add( light );
+                // scene.add(new THREE.CameraHelper( light.shadow.camera ))
 
                 light = new THREE.DirectionalLight( 0xffffff, 1.00 );
-                light.position.set( pos.x,pos.y+15,pos.z );
+                light.position.set( pos.x+5,pos.y+15,pos.z );
                 light.castShadow = true;
                 light.shadow.mapSize.width = 1024;
                 light.shadow.mapSize.height = 1024;
@@ -298,44 +301,14 @@
 
             }
 
-            //author: teal
-            function calc_texture_size(approx) {
-                return Math.pow(2, Math.floor(Math.log(approx) / Math.log(2)));
-            }
-
-            //author: teal
-            function create_text_texture(text, color, back_color) {
-                let margin = 0.5;
-                let size = 15;
-                if (text == undefined) return null;
-                var canvas = document.createElement("canvas");
-                var context = canvas.getContext("2d");
-                var ts = calc_texture_size(size + size * 2 * margin) * 2;
-                canvas.width = canvas.height = ts;
-                context.font = ts / (1 + 2 * margin) + "pt Arial";
-                context.fillStyle = back_color;
-                context.fillRect(0, 0, canvas.width, canvas.height);
-                context.textAlign = "center";
-                context.textBaseline = "middle";
-                context.fillStyle = color;
-                context.fillText(text, canvas.width / 2, canvas.height / 2);
-                if (text == '6' || text == '9') {
-                    context.fillText('  .', canvas.width / 2, canvas.height / 2);
-                }
-                var texture = new THREE.Texture(canvas);
-                texture.needsUpdate = true;
-                return texture;
-            }
-
-
             function throwTwoD6Dice() {
 
                 var mass = 100, radius = 1.3;
-                let materials = createMaterial(6,"#FFFF00", "#FF0000");
-                
+                let materials = createMaterial(6,"#FFFFFF", "#000000");
+
                 // Create boxes
                 boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
-                boxBody = new CANNON.Body({ mass: mass, material: diceBodyMaterial });
+                boxBody = new CANNON.Body({ mass: mass, material: diceBodyMaterial, allowSleep: true });
                 boxBody.addShape(boxShape);
                 boxBody.position.set(10,13,0);
                 let quat = new THREE.Quaternion()
@@ -349,6 +322,10 @@
                 boxBody.angularVelocity.set(-3,1,5);
                 boxBody.linearDamping = 0.3;
                 boxBody.angularDamping = 0.3;
+
+                boxBody.addEventListener("sleep",function(e){
+                    log("sleep!")
+                });
 
                 var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 1, 1 );
                 cubeMesh = new THREE.Mesh(cubeGeo, materials);
@@ -416,17 +393,46 @@
 
             }
 
+            function removeAllPhysicsDice() {
+                bodies.forEach((b) => world.removeBody(b));
+                meshes.forEach((m) => scene.remove(m));
+                bodies = [];
+                meshes = [];
+            }
+
             function initInput() {
                 window.addEventListener( 'keyup', function ( event ) {
                     console.log(event.keyCode)
                     switch ( event.keyCode ) {
                         // Q
                         case 81:
-                            bodies.forEach((b) => world.removeBody(b));
-                            meshes.forEach((m) => scene.remove(m));
-                            bodies = [];
-                            meshes = [];
+                            if(resultsDeadlineTimeout) {
+                                clearTimeout(resultsDeadlineTimeout)
+                            }
+                            if(resultsCheckInterval) {
+                                clearInterval(resultsCheckInterval)
+                            }
+                            removeAllPhysicsDice()
                             throwTwoD6Dice();
+                            resultsCheckInterval = setInterval(function() {
+                                let check = true;
+                                for(let i = 0; i < bodies.length; i++) {
+                                    check = check && bodies[i].velocity.lengthSquared() < EPSILON;
+                                }
+                                if(check) {
+                                    clearInterval(resultsCheckInterval)
+                                    clearTimeout(resultsDeadlineTimeout)
+                                    for(let i = 0; i < meshes.length; i++) {
+                                        log(getDiceValue(meshes[i]));
+                                    }
+                                }
+                            }, 150);
+                            resultsDeadlineTimeout = setTimeout(function() {
+                                for(let i = 0; i < meshes.length; i++) {
+                                    log(getDiceValue(meshes[i]));
+                                }
+                                clearInterval(resultsCheckInterval)
+                            }, 4000);
                             break;
                         // A
                         case 65:
@@ -435,15 +441,69 @@
                             break;
                         // Z
                         case 90:
-                            bodies.forEach((b) => world.removeBody(b));
-                            meshes.forEach((m) => scene.remove(m));
-                            bodies = [];
-                            meshes = [];
+                            removeAllPhysicsDice()
                             break;
                     }
                 }, false );
 
                 window.addEventListener( 'keyup', function () {}, false );
+            }
+
+
+
+            function onMouseDown(e){
+                mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+                mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+            }
+            function onMouseUp(e){
+                mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+                mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+            }
+
+            function onMouseMove(e){
+                mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+                mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+            }
+
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+
+                let w = camera.right - camera.left;
+                let h = w * window.innerHeight / window.innerWidth;
+                camera.left = w / - 2;
+                camera.right = w / 2;
+                camera.top = h / 2;
+                camera.bottom = h / - 2;
+                camera.updateProjectionMatrix();
+                // controls.handleResize();
+                renderer.setSize( window.innerWidth, window.innerHeight );
+            }
+
+            function animate() {
+                requestAnimationFrame( animate );
+
+                // required if controls.enableDamping or controls.autoRotate are set to true
+                if(enableControls) { controls.update(); }
+
+                if(cubeMesh) {
+                    numDisplayElement.innerHTML = getDiceValue(cubeMesh);
+                }
+
+                cannonDebugRenderer.update();
+                updatePhysics();
+                renderer.render(scene, camera);
+            }
+
+            function updatePhysics(){
+                world.step(dt * 2.0);
+                for(var i=0; i !== meshes.length; i++){
+                    meshes[i].position.copy(bodies[i].position);
+                    meshes[i].quaternion.copy(bodies[i].quaternion);
+
+                    let displayMesh = displayDiceMeshes[i];
+                    displayMesh.quaternion.copy(bodies[i].quaternion);
+                    displayMesh.position.set(displayMesh.position.x,bodies[i].position.y,displayMesh.position.z);
+                }
             }
 
             //author: teal
@@ -453,7 +513,7 @@
                 for (var i = 0, l = diceMesh.geometry.faces.length; i < l; ++i) {
                     var face = diceMesh.geometry.faces[i];
                     // if (face.materialIndex == 0) continue;
-                    var angle = face.normal.clone().applyQuaternion(diceMesh.body.quaternion).angleTo(vector);
+                    var angle = face.normal.clone().applyQuaternion(diceMesh.quaternion).angleTo(vector);
 
                     if (angle < closest_angle) {
                         closest_angle = angle;
@@ -463,6 +523,102 @@
                 var matindex = closest_face.materialIndex + 1;
                 return matindex;
             }
+
+            function addRampEntities() {
+                function rad(deg) {return (deg/360)*Math.PI*2};
+                function randAngle() {return Math.PI*2*Math.random();}
+
+                let rampRotation = new THREE.Quaternion()
+                .setFromUnitVectors(
+                    new THREE.Vector3(0,1,0),
+                    new THREE.Vector3(0.5,0,0).normalize());
+
+                for(let u = 0; u < 10; u+=1) {
+                    for(let n = 0; n <= 2; n++) {
+                        let pos = new THREE.Vector3(u, 0, (n) - (2-0)/2);
+                        let quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(randAngle(),randAngle(),randAngle(), "YXZ"));
+                        let size = new THREE.Vector3(1,1,1);
+                        pos.applyQuaternion(rampRotation);
+                        pos.add(new THREE.Vector3(-2,7,0));
+                        createStaticEntity(pos,quat,size);
+                    }
+                }            
+            }
+
+            function createStaticEntity(position, quaternion, size, invisible) {
+
+                // Create boxes
+                let halfSize = (new CANNON.Vec3(size.x,size.y,size.z)).scale(0.5);
+                var boxShape = new CANNON.Box(new CANNON.Vec3(halfSize.x,halfSize.y,halfSize.z));
+                var staticBody = new CANNON.Body({ mass: 0 });
+                staticBody.addShape(boxShape);
+                staticBody.position.set(position.x,position.y,position.z);
+                staticBody.quaternion.set(quaternion.x,quaternion.y,quaternion.z,quaternion.w);
+                world.addBody(staticBody);
+                staticBodies.push(staticBody);
+
+                if(!staticMaterial) {
+                    staticMaterial = new THREE.MeshPhongMaterial( { color: 0x88aa22} );
+                }
+
+                if(!invisible) {
+                    var cubeGeo = new THREE.BoxGeometry( size.x, size.y, size.z, 1, 1 );
+                    var boxMesh = new THREE.Mesh(cubeGeo, staticMaterial);
+                    boxMesh.castShadow = true;
+                    staticMeshes.push(boxMesh);
+
+                    boxMesh.position.copy(staticBody.position);
+                    boxMesh.quaternion.copy(staticBody.quaternion);
+
+                    scene.add(boxMesh);
+
+                    var axesHelper = new THREE.AxesHelper( 2 );
+                    axesHelper.position.copy(staticBody.position);
+                    axesHelper.quaternion.copy(staticBody.quaternion);
+                    // scene.add( axesHelper );
+
+                    var box = new THREE.BoxHelper( boxMesh, 0xffff00 );
+                    // scene.add( box );
+                }
+
+            }
+
+
+            //----------------------------------------------------------------------------
+            //----------------------------------------------------------------------------
+            //----------------------------- T E A L --------------------------------------
+            //----------------------------------------------------------------------------
+            //----------------------------------------------------------------------------
+
+            //author: teal
+            function calc_texture_size(approx) {
+                return Math.pow(2, Math.floor(Math.log(approx) / Math.log(2)));
+            }
+
+            //author: teal
+            function create_text_texture(text, color, back_color) {
+                let margin = 0.5;
+                let size = 15;
+                if (text == undefined) return null;
+                var canvas = document.createElement("canvas");
+                var context = canvas.getContext("2d");
+                var ts = calc_texture_size(size + size * 2 * margin) * 2;
+                canvas.width = canvas.height = ts;
+                context.font = ts / (1 + 2 * margin) + "pt Arial";
+                context.fillStyle = back_color;
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.textAlign = "center";
+                context.textBaseline = "middle";
+                context.fillStyle = color;
+                context.fillText(text, canvas.width / 2, canvas.height / 2);
+                if (text == '6' || text == '9') {
+                    context.fillText('  .', canvas.width / 2, canvas.height / 2);
+                }
+                var texture = new THREE.Texture(canvas);
+                texture.needsUpdate = true;
+                return texture;
+            }
+
 
             //author: teal
             function create_d6_geometry(radius) {
@@ -609,119 +765,6 @@
                 return new CANNON.ConvexPolyhedron(cv, cf);
             }
 
-            function onMouseDown(e){
-                mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-                mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
-            }
-            function onMouseUp(e){
-                mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-                mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
-            }
-
-            function onMouseMove(e){
-                mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-                mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
-            }
-
-            function onWindowResize() {
-                camera.aspect = window.innerWidth / window.innerHeight;
-
-                let w = camera.right - camera.left;
-                let h = w * window.innerHeight / window.innerWidth;
-                camera.left = w / - 2;
-                camera.right = w / 2;
-                camera.top = h / 2;
-                camera.bottom = h / - 2;
-                camera.updateProjectionMatrix();
-                // controls.handleResize();
-                renderer.setSize( window.innerWidth, window.innerHeight );
-            }
-
-            function animate() {
-                requestAnimationFrame( animate );
-
-                // required if controls.enableDamping or controls.autoRotate are set to true
-                if(enableControls) { controls.update(); }
-
-                if(cubeMesh) {
-                    numDisplayElement.innerHTML = getDiceValue(cubeMesh);
-                }
-
-                cannonDebugRenderer.update();
-                updatePhysics();
-                renderer.render(scene, camera);
-            }
-
-            function updatePhysics(){
-                world.step(dt * 2.0);
-                for(var i=0; i !== meshes.length; i++){
-                    meshes[i].position.copy(bodies[i].position);
-                    meshes[i].quaternion.copy(bodies[i].quaternion);
-
-                    let displayMesh = displayDiceMeshes[i];
-                    displayMesh.quaternion.copy(bodies[i].quaternion);
-                    displayMesh.position.set(displayMesh.position.x,bodies[i].position.y,displayMesh.position.z);
-                }
-            }
-
-            function addRampEntities() {
-                function rad(deg) {return (deg/360)*Math.PI*2};
-                function randAngle() {return Math.PI*2*Math.random();}
-
-                let rampRotation = new THREE.Quaternion()
-                .setFromUnitVectors(
-                    new THREE.Vector3(0,1,0),
-                    new THREE.Vector3(0.5,0,0).normalize());
-
-                for(let u = 0; u < 10; u+=1) {
-                    for(let n = 0; n <= 2; n++) {
-                        let pos = new THREE.Vector3(u, 0, (n) - (2-0)/2);
-                        let quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(randAngle(),randAngle(),randAngle(), "YXZ"));
-                        let size = new THREE.Vector3(1,1,1);
-                        pos.applyQuaternion(rampRotation);
-                        pos.add(new THREE.Vector3(-2,7,0));
-                        createStaticEntity(pos,quat,size);
-                    }
-                }            
-            }
-
-            function createStaticEntity(position, quaternion, size, invisible) {
-
-                // Create boxes
-                let halfSize = (new CANNON.Vec3(size.x,size.y,size.z)).scale(0.5);
-                var boxShape = new CANNON.Box(new CANNON.Vec3(halfSize.x,halfSize.y,halfSize.z));
-                var staticBody = new CANNON.Body({ mass: 0 });
-                staticBody.addShape(boxShape);
-                staticBody.position.set(position.x,position.y,position.z);
-                staticBody.quaternion.set(quaternion.x,quaternion.y,quaternion.z,quaternion.w);
-                world.addBody(staticBody);
-                staticBodies.push(staticBody);
-
-                if(!staticMaterial) {
-                    staticMaterial = new THREE.MeshPhongMaterial( { color: 0x88aa22} );
-                }
-
-                if(!invisible) {
-                    var cubeGeo = new THREE.BoxGeometry( size.x, size.y, size.z, 1, 1 );
-                    var boxMesh = new THREE.Mesh(cubeGeo, staticMaterial);
-                    boxMesh.castShadow = true;
-                    staticMeshes.push(boxMesh);
-
-                    boxMesh.position.copy(staticBody.position);
-                    boxMesh.quaternion.copy(staticBody.quaternion);
-
-                    scene.add(boxMesh);
-
-                    var axesHelper = new THREE.AxesHelper( 2 );
-                    axesHelper.position.copy(staticBody.position);
-                    axesHelper.quaternion.copy(staticBody.quaternion);
-                    // scene.add( axesHelper );
-
-                    var box = new THREE.BoxHelper( boxMesh, 0xffff00 );
-                    // scene.add( box );
-                }
-
-            }
 
         </script>
     </body>
