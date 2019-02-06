@@ -1,5 +1,6 @@
 var enableControls = false;
 var EPSILON = 0.001;
+var WIDTH_TO_HEIGHT_RATIO = 350/550;
 var world;
 var cannonDebugRenderer;
 var dt = 1 / 60;
@@ -117,7 +118,7 @@ function initThree() {
 
     // camera
     let w = 20;
-    let h = w * window.innerHeight / window.innerWidth;
+    let h = w / WIDTH_TO_HEIGHT_RATIO;
     camera = new THREE.OrthographicCamera( w / - 2, w / 2, h / 2, h / - 2, 0.1, 10000 );
     camera.position.set(groundLocation.x,25,25)
     camera.lookAt(groundLocation);
@@ -176,7 +177,7 @@ function initThree() {
 
     renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
     renderer.setClearColor( 0x000000, 0 ); // the default
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize( window.innerHeight * WIDTH_TO_HEIGHT_RATIO, window.innerHeight );
     cannonDebugRenderer = new THREE.CannonDebugRenderer( scene, world );
 
     container.appendChild( renderer.domElement );
@@ -426,14 +427,14 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
 
     let w = camera.right - camera.left;
-    let h = w * window.innerHeight / window.innerWidth;
+    let h = w / WIDTH_TO_HEIGHT_RATIO
     camera.left = w / - 2;
     camera.right = w / 2;
     camera.top = h / 2;
     camera.bottom = h / - 2;
     camera.updateProjectionMatrix();
     // controls.handleResize();
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize( window.innerHeight * WIDTH_TO_HEIGHT_RATIO, window.innerHeight );
 }
 
 function animate() {
