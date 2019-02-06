@@ -54,14 +54,14 @@ function createDisplayDice() {
     let displayDieRedMesh = new THREE.Mesh(boxGeometry, redMaterial);
     displayDieRedMesh.castShadow = true;
     displayDieRedMesh.position.copy(groundLocation)
-    displayDieRedMesh.position.y += 10
+    displayDieRedMesh.position.y += 100 //out of view
     displayDieRedMesh.position.x -= 1
     scene.add(displayDieRedMesh);
 
     let displayDieYellowMesh = new THREE.Mesh(boxGeometry, yellowMaterial);
     displayDieYellowMesh.castShadow = true;
     displayDieYellowMesh.position.copy(groundLocation)
-    displayDieYellowMesh.position.y += 10
+    displayDieYellowMesh.position.y += 100 //out of view
     displayDieYellowMesh.position.x += 1
     scene.add(displayDieYellowMesh);
 
@@ -117,11 +117,12 @@ function initThree() {
     scene = new THREE.Scene();
 
     // camera
-    let w = 20;
+    let w = 5;
     let h = w / WIDTH_TO_HEIGHT_RATIO;
     camera = new THREE.OrthographicCamera( w / - 2, w / 2, h / 2, h / - 2, 0.1, 10000 );
     camera.position.set(groundLocation.x,25,25)
-    camera.lookAt(groundLocation);
+    let lookAt = groundLocation.clone().add(new THREE.Vector3(0,0,-3));
+    camera.lookAt(lookAt);
     scene.add(camera);
 
     // lights
@@ -245,6 +246,27 @@ function throwTwoD6Dice() {
     var mass = 100, radius = 1.3;
     let materials = createMaterial(6,"#FFFFFF", "#000000");
 
+    function getRandomD6Orientation() {
+        let r = Math.floor(Math.random()*6+1);
+        let v;
+        if(r == 1) {
+            v = new THREE.Vector3(0,1,0);
+        } else if(r == 2) {
+            v = new THREE.Vector3(0,-1,0);
+        } else if(r == 3) {
+            v = new THREE.Vector3(0,0,1);
+        } else if(r == 4) {
+            v = new THREE.Vector3(0,0,-1);
+        } else if(r == 5) {
+            v = new THREE.Vector3(1,0,0);
+        } else if(r == 6) {
+            v = new THREE.Vector3(-1,0,0);
+        } else {
+            log("ERROR")
+        }
+        return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),v);
+    }
+
     // Create boxes
     boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
     let boxBody = new CANNON.Body({ mass: mass, material: diceBodyMaterial });
@@ -255,6 +277,7 @@ function throwTwoD6Dice() {
         new THREE.Vector3(0,1,0),
         new THREE.Vector3(rand()*2-1, rand()*2-1, rand()*2-1).normalize());
         // new THREE.Vector3(1,1,1).normalize());
+        quat = getRandomD6Orientation();
     boxBody.quaternion.copy(quat);
     // boxBody.velocity.set(-30,0,Math.random()*20-10);
     // boxBody.angularVelocity.set(rand()*2-1, rand()*2-1, rand()*2-1);
@@ -279,6 +302,8 @@ function throwTwoD6Dice() {
         new THREE.Vector3(0,1,0),
         new THREE.Vector3(rand()*2-1, rand()*2-1, rand()*2-1).normalize());
         // new THREE.Vector3(1,1,1).normalize());
+        
+        quat = getRandomD6Orientation();
     boxBody.quaternion.copy(quat);
     // boxBody.velocity.set(-30,0,Math.random()*20-10);
     // boxBody.angularVelocity.set(rand()*2-1, rand()*2-1, rand()*2-1);
@@ -358,7 +383,7 @@ function roll() {
 
 setInterval(function() {
     roll();
-}, 2000);
+}, 4000);
 
 function setupRoll() {
     if(resultsDeadlineTimeout) {
