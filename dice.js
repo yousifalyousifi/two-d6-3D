@@ -7,19 +7,11 @@
             var dt = 1 / 60;
 
             var container, camera, scene, renderer;
-            //var geometry, material, mesh;
             var controls, time = Date.now();
 
             var staticMaterial;
 
-            var raycaster = new THREE.Raycaster();
-            var mouse = new THREE.Vector2();
-
             var diceBodyMaterial, deskBodyMaterial, barrierBodyMaterial;
-
-            var cubeMesh;
-            var displayCudeMesh;
-            var boxBody;
 
             // To be synced
             var meshes = [], bodies = [];
@@ -29,12 +21,8 @@
             //Static, sync not required
             var staticMeshes=[], staticBodies=[];
 
-            var numDisplayElement;
-
             var groundLocation = new THREE.Vector3(20,0,0);
 
-
-            var diceBoxLocation = new CANNON.Vec3();
             var diceBoxSize = 20;
 
             var resultsDeadlineTimeout;
@@ -83,7 +71,6 @@
 
             }
 
-
             initInput();
             initCannon();
             initThree();
@@ -126,10 +113,6 @@
                 container = document.createElement( 'div' );
                 document.body.appendChild( container );
 
-                numDisplayElement = document.createElement( "div" );
-                numDisplayElement.id = "numDisplayElement"
-                numDisplayElement.innerHTML = "hi"
-                document.body.appendChild(numDisplayElement);
 
                 // scene
                 scene = new THREE.Scene();
@@ -207,9 +190,6 @@
                 renderer.shadowMap.enabled = true;
 
                 window.addEventListener( 'resize', onWindowResize, false );
-                window.addEventListener("mousemove", onMouseMove, false );
-                window.addEventListener("mousedown", onMouseDown, false );
-                window.addEventListener("mouseup", onMouseUp, false );
             }
 
             function createDiceBox() {
@@ -268,7 +248,7 @@
 
                 // Create boxes
                 boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
-                boxBody = new CANNON.Body({ mass: mass, material: diceBodyMaterial });
+                let boxBody = new CANNON.Body({ mass: mass, material: diceBodyMaterial });
                 boxBody.addShape(boxShape);
                 boxBody.position.set(1,2,0);
                 let quat = new THREE.Quaternion()
@@ -285,7 +265,7 @@
                 bodies.push(boxBody);
 
                 var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 1, 1 );
-                cubeMesh = new THREE.Mesh(cubeGeo, materials);
+                let cubeMesh = new THREE.Mesh(cubeGeo, materials);
                 cubeMesh.castShadow = true;
                 cubeMesh.body = boxBody;
                 meshes.push(cubeMesh);
@@ -444,22 +424,6 @@
                 window.addEventListener( 'keyup', function () {}, false );
             }
 
-
-
-            function onMouseDown(e){
-                mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-                mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
-            }
-            function onMouseUp(e){
-                mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-                mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
-            }
-
-            function onMouseMove(e){
-                mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-                mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
-            }
-
             function onWindowResize() {
                 camera.aspect = window.innerWidth / window.innerHeight;
 
@@ -479,10 +443,6 @@
 
                 // required if controls.enableDamping or controls.autoRotate are set to true
                 if(enableControls) { controls.update(); }
-
-                if(cubeMesh) {
-                    numDisplayElement.innerHTML = getDiceValue(cubeMesh);
-                }
 
                 cannonDebugRenderer.update();
                 updatePhysics();
