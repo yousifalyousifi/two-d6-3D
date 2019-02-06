@@ -178,7 +178,11 @@ function initThree() {
 
     renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
     renderer.setClearColor( 0x000000, 0 ); // the default
-    renderer.setSize( window.innerHeight * WIDTH_TO_HEIGHT_RATIO, window.innerHeight );
+    if(window.innerWidth / window.innerHeight < WIDTH_TO_HEIGHT_RATIO) {
+        renderer.setSize( window.innerWidth, window.innerWidth / WIDTH_TO_HEIGHT_RATIO );
+    } else {
+        renderer.setSize( window.innerHeight * WIDTH_TO_HEIGHT_RATIO, window.innerHeight );
+    }
     cannonDebugRenderer = new THREE.CannonDebugRenderer( scene, world );
 
     container.appendChild( renderer.domElement );
@@ -302,7 +306,7 @@ function throwTwoD6Dice() {
         new THREE.Vector3(0,1,0),
         new THREE.Vector3(rand()*2-1, rand()*2-1, rand()*2-1).normalize());
         // new THREE.Vector3(1,1,1).normalize());
-        
+
         quat = getRandomD6Orientation();
     boxBody.quaternion.copy(quat);
     // boxBody.velocity.set(-30,0,Math.random()*20-10);
@@ -459,7 +463,12 @@ function onWindowResize() {
     camera.bottom = h / - 2;
     camera.updateProjectionMatrix();
     // controls.handleResize();
-    renderer.setSize( window.innerHeight * WIDTH_TO_HEIGHT_RATIO, window.innerHeight );
+
+    if(window.innerWidth / window.innerHeight < WIDTH_TO_HEIGHT_RATIO) {
+        renderer.setSize( window.innerWidth, window.innerWidth / WIDTH_TO_HEIGHT_RATIO );
+    } else {
+        renderer.setSize( window.innerHeight * WIDTH_TO_HEIGHT_RATIO, window.innerHeight );
+    }
 }
 
 function animate() {
