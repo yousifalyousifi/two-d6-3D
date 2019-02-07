@@ -169,7 +169,7 @@ function initThree() {
     light.target = target;
     scene.add(target);
     scene.add( light );
-    scene.add(new THREE.CameraHelper( light.shadow.camera ))
+    // scene.add(new THREE.CameraHelper( light.shadow.camera ))
 
     // floor shadow catcher
     let geometry = new THREE.PlaneGeometry( 10, 10, 1, 1 );
@@ -295,10 +295,10 @@ function throwTwoD6Dice() {
         new THREE.Vector3(0,1,0),
         new THREE.Vector3(rand()*2-1, rand()*2-1, rand()*2-1).normalize());
         // new THREE.Vector3(1,1,1).normalize());
-        quat = getRandomD6Orientation();
+    quat = getRandomD6Orientation();
     boxBody.quaternion.copy(quat);
     boxBody.velocity.set(-30,0,Math.random()*20-10);
-    boxBody.angularVelocity.set(rand()*2-1, rand()*2-1, rand()*2-1);
+    boxBody.angularVelocity.set(rand()*6+3, rand()*6+3, rand()*6+3);
     boxBody.linearDamping = 0.3;
     boxBody.angularDamping = 0.3;
     world.addBody(boxBody);
@@ -320,11 +320,10 @@ function throwTwoD6Dice() {
         new THREE.Vector3(0,1,0),
         new THREE.Vector3(rand()*2-1, rand()*2-1, rand()*2-1).normalize());
         // new THREE.Vector3(1,1,1).normalize());
-
-        quat = getRandomD6Orientation();
+    quat = getRandomD6Orientation();
     boxBody.quaternion.copy(quat);
     boxBody.velocity.set(-30,0,Math.random()*20-10);
-    boxBody.angularVelocity.set(rand()*2-1, rand()*2-1, rand()*2-1);
+    boxBody.angularVelocity.set(rand()*6+3, rand()*6+3, rand()*6+3);
     boxBody.linearDamping = 0.3;
     boxBody.angularDamping = 0.3;
     world.addBody(boxBody);
@@ -345,63 +344,11 @@ function removeAllPhysicsDice() {
     meshes = [];
 }
 
-/*
-
-*/
-
-function test() {
-    var resultsTable = [];
-    var results = [];
-    var count = 0;
-    while (count < 10000) {
-
-        results.push(Math.floor(Math.random()*6+1))
-        results.push(Math.floor(Math.random()*6+1))
-        
-        for(let i = 0; i < results.length; i++) {
-            if(!resultsTable[results[i]]) {
-                resultsTable[results[i]] = 1;
-            } else {
-                resultsTable[results[i]] += 1;
-            }
-        }
-        let sum = results[0] + results[1];
-        if(!resultsTable["sum"+sum]) {
-            resultsTable["sum"+sum] = 1;
-        } else {
-            resultsTable["sum"+sum] += 1;
-        }
-
-        results = []
-        count++
-    }
-    console.log(resultsTable)
-}
-
-
-function roll() {
+function roll(resultsIntervalCallback, resultsFinalCallBack) {
     setupRoll();
     throwTwoD6Dice();
-    startResultCheckers(undefined, function(results) {
-        for(let i = 0; i < results.length; i++) {
-            if(!resultsTable[results[i]]) {
-                resultsTable[results[i]] = 1;
-            } else {
-                resultsTable[results[i]] += 1;
-            }
-        }
-        let sum = results[0] + results[1];
-        if(!resultsTable["sum"+sum]) {
-            resultsTable["sum"+sum] = 1;
-        } else {
-            resultsTable["sum"+sum] += 1;
-        }
-    });
+    startResultCheckers(resultsIntervalCallback, resultsFinalCallBack);
 }
-
-setInterval(function() {
-    roll();
-}, 4000);
 
 function setupRoll() {
     if(resultsDeadlineTimeout) {
@@ -422,7 +369,7 @@ function startResultCheckers(resultsIntervalCallback, resultsFinalCallBack) {
         if(allStopped) {
             //DONE. Report results. End timeouts and intervals
 
-            //report results
+            //report final results
             let results = [];
             for(let i = 0; i < meshes.length; i++) {
                 results.push(getDiceValue(meshes[i]));
@@ -433,6 +380,15 @@ function startResultCheckers(resultsIntervalCallback, resultsFinalCallBack) {
             }
             clearInterval(stoppedCheckInterval)
             clearTimeout(resultsDeadlineTimeout)
+        } else {
+            //report interval results
+            let results = [];
+            for(let i = 0; i < meshes.length; i++) {
+                results.push(getDiceValue(meshes[i]));
+            }
+            if (resultsIntervalCallback) {
+                resultsIntervalCallback(results);
+            }
         }
     }, 150);
     resultsDeadlineTimeout = setTimeout(function() {
