@@ -1,11 +1,12 @@
-var enableControls = false;
+var enableControls = true;
 var EPSILON = 0.001;
 var WIDTH_TO_HEIGHT_RATIO = 350/550;
 var world;
 var cannonDebugRenderer;
 var dt = 1 / 60;
 
-var container, camera, scene, renderer;
+var container, overlay;
+var camera, scene, renderer;
 var controls, time = Date.now();
 
 var staticMaterial;
@@ -109,9 +110,12 @@ function initCannon(){
 
 function initThree() {
 
-    container = document.createElement( 'div' );
-    document.body.appendChild( container );
+    container = document.getElementById( 'container' );
+    // container.classList.add("container")
+    // document.body.appendChild( container );
 
+    overlay = document.getElementById( 'overlay' );
+    container.appendChild( overlay );
 
     // scene
     scene = new THREE.Scene();
@@ -121,7 +125,7 @@ function initThree() {
     let h = w / WIDTH_TO_HEIGHT_RATIO;
     camera = new THREE.OrthographicCamera( w / - 2, w / 2, h / 2, h / - 2, 0.1, 10000 );
     camera.position.set(groundLocation.x,25,25)
-    let lookAt = groundLocation.clone().add(new THREE.Vector3(0,0,-3));
+    let lookAt = groundLocation.clone().add(new THREE.Vector3(0,0,-1));
     camera.lookAt(lookAt);
     scene.add(camera);
 
@@ -177,11 +181,15 @@ function initThree() {
     scene.add(floorMesh);
 
     renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
-    renderer.setClearColor( 0x000000, 0 ); // the default
+    renderer.setClearColor( (new THREE.Color("rgb(255, 242, 198)")).getHex(), 1 ); // the default
     if(window.innerWidth / window.innerHeight < WIDTH_TO_HEIGHT_RATIO) {
         renderer.setSize( window.innerWidth, window.innerWidth / WIDTH_TO_HEIGHT_RATIO );
+        overlay.style.width = (window.innerWidth ) + "px"
+        overlay.style.height = (window.innerWidth / WIDTH_TO_HEIGHT_RATIO) + "px"
     } else {
         renderer.setSize( window.innerHeight * WIDTH_TO_HEIGHT_RATIO, window.innerHeight );
+        overlay.style.width = (window.innerHeight * WIDTH_TO_HEIGHT_RATIO) + "px"
+        overlay.style.height = (window.innerHeight) + "px"
     }
     cannonDebugRenderer = new THREE.CannonDebugRenderer( scene, world );
 
@@ -275,7 +283,7 @@ function throwTwoD6Dice() {
     boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
     let boxBody = new CANNON.Body({ mass: mass, material: diceBodyMaterial });
     boxBody.addShape(boxShape);
-    boxBody.position.set(1,2,0);
+    boxBody.position.set(1,12,0);
     let quat = new THREE.Quaternion()
     .setFromUnitVectors(
         new THREE.Vector3(0,1,0),
@@ -283,10 +291,10 @@ function throwTwoD6Dice() {
         // new THREE.Vector3(1,1,1).normalize());
         quat = getRandomD6Orientation();
     boxBody.quaternion.copy(quat);
-    // boxBody.velocity.set(-30,0,Math.random()*20-10);
-    // boxBody.angularVelocity.set(rand()*2-1, rand()*2-1, rand()*2-1);
-    // boxBody.linearDamping = 0.3;
-    // boxBody.angularDamping = 0.3;
+    boxBody.velocity.set(-30,0,Math.random()*20-10);
+    boxBody.angularVelocity.set(rand()*2-1, rand()*2-1, rand()*2-1);
+    boxBody.linearDamping = 0.3;
+    boxBody.angularDamping = 0.3;
     world.addBody(boxBody);
     bodies.push(boxBody);
 
@@ -300,7 +308,7 @@ function throwTwoD6Dice() {
     boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
     boxBody = new CANNON.Body({ mass: mass, material: diceBodyMaterial });
     boxBody.addShape(boxShape);
-    boxBody.position.set(0,2,0);
+    boxBody.position.set(0,12,0);
      quat = new THREE.Quaternion()
     .setFromUnitVectors(
         new THREE.Vector3(0,1,0),
@@ -309,10 +317,10 @@ function throwTwoD6Dice() {
 
         quat = getRandomD6Orientation();
     boxBody.quaternion.copy(quat);
-    // boxBody.velocity.set(-30,0,Math.random()*20-10);
-    // boxBody.angularVelocity.set(rand()*2-1, rand()*2-1, rand()*2-1);
-    // boxBody.linearDamping = 0.3;
-    // boxBody.angularDamping = 0.3;
+    boxBody.velocity.set(-30,0,Math.random()*20-10);
+    boxBody.angularVelocity.set(rand()*2-1, rand()*2-1, rand()*2-1);
+    boxBody.linearDamping = 0.3;
+    boxBody.angularDamping = 0.3;
     world.addBody(boxBody);
     bodies.push(boxBody);
 
@@ -466,8 +474,12 @@ function onWindowResize() {
 
     if(window.innerWidth / window.innerHeight < WIDTH_TO_HEIGHT_RATIO) {
         renderer.setSize( window.innerWidth, window.innerWidth / WIDTH_TO_HEIGHT_RATIO );
+        overlay.style.width = (window.innerWidth ) + "px"
+        overlay.style.height = (window.innerWidth / WIDTH_TO_HEIGHT_RATIO) + "px"
     } else {
         renderer.setSize( window.innerHeight * WIDTH_TO_HEIGHT_RATIO, window.innerHeight );
+        overlay.style.width = (window.innerHeight * WIDTH_TO_HEIGHT_RATIO) + "px"
+        overlay.style.height = (window.innerHeight) + "px"
     }
 }
 

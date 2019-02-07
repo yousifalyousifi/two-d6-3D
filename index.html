@@ -14,9 +14,106 @@
                 padding:0;
                 overflow: hidden;
             }
+
+            .container {
+                position: relative;
+            }
+
+            .overlay {
+                position: absolute;
+                display: grid;
+                grid-template-columns: repeat(20, 5%);
+                grid-template-rows: repeat(20, 5%);
+                top: 0px;
+                left: 0px;
+            }
+
+            #overlay-flexbox {
+                grid-row: 1 / span 20;
+                grid-column: 1 / span 20;
+                display: flex;
+                justify-content: flex-start;
+                align-items: flex-end;
+            }
+
+            #roll {
+                grid-area: 2/5/8/17;
+                font-size: 50px;
+            }
+
+            #results {
+                grid-row: 14 / span 3;
+                grid-column: 1 / span 20;
+                text-align: center;
+                font-size: 15vh;
+            }
+
+            #totals {
+                font-size: 3vh;
+            }
+            
+            #showStatsButton {
+                font-size: 3vh;
+                margin-left: 30px;
+                margin-bottom: 30px;
+            }
         </style>
     </head>
     <body>
+        <div id="container" class="container">
+            <div id="overlay" class="overlay">
+                <div id="results">10</div>
+                <div id="overlay-flexbox">
+                    <button id="showStatsButton">Show Stats</button>
+                </div>
+                <button id="roll">Roll</button>
+                <div id="results-overlay-flexbox">
+                    <span id="totals">Total: 1882</span>
+                    <table>
+                        <tr>
+                            <th>2</th>
+                            <th>3</th>
+                            <th>4</th>
+                            <th>5</th>
+                            <th>6</th>
+                            <th>7</th>
+                            <th>8</th>
+                            <th>9</th>
+                            <th>10</th>
+                            <th>11</th>
+                            <th>12</th>
+                        </tr>
+                        <tr>
+                            <td class="resultCount">2</td>
+                            <td class="resultCount">3</td>
+                            <td class="resultCount">4</td>
+                            <td class="resultCount">5</td>
+                            <td class="resultCount">6</td>
+                            <td class="resultCount">7</td>
+                            <td class="resultCount">8</td>
+                            <td class="resultCount">9</td>
+                            <td class="resultCount">10</td>
+                            <td class="resultCount">11</td>
+                            <td class="resultCount">12</td>
+                        </tr>
+                        <tr>
+                            <td class="resultChance">0.122</td>
+                            <td class="resultChance">0.123</td>
+                            <td class="resultChance">0.124</td>
+                            <td class="resultChance">0.125</td>
+                            <td class="resultChance">0.126</td>
+                            <td class="resultChance">0.127</td>
+                            <td class="resultChance">0.128</td>
+                            <td class="resultChance">0.129</td>
+                            <td class="resultChance">0.1210</td>
+                            <td class="resultChance">0.1211</td>
+                            <td class="resultChance">0.1212</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <script src="../howler.js"></script>
         <script src="../threejs/three_r100.js"></script>
         <script src="../threejs/controls/TrackballControls.js"></script>
@@ -32,5 +129,6 @@
 
 
         </script>
+
     </body>
 </html>
