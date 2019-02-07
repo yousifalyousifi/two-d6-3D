@@ -1,4 +1,4 @@
-var enableControls = true;
+var enableControls = false;
 var EPSILON = 0.001;
 var WIDTH_TO_HEIGHT_RATIO = 350/550;
 var world;
@@ -24,6 +24,7 @@ var staticMeshes=[], staticBodies=[];
 var groundLocation = new THREE.Vector3(20,0,0);
 
 var diceBoxSize = 20;
+var diceBoxLocation = new CANNON.Vec3(-10,0,-10);
 
 var resultsDeadlineTimeout;
 var stoppedCheckInterval;
@@ -101,7 +102,7 @@ function initCannon(){
     deskBodyMaterial = new CANNON.Material();
     barrierBodyMaterial = new CANNON.Material();
     world.addContactMaterial(new CANNON.ContactMaterial(
-        deskBodyMaterial, diceBodyMaterial, {friction: 0.001, restitution: 0.1}));
+        deskBodyMaterial, diceBodyMaterial, {friction: 0.01, restitution: 0.1}));
     world.addContactMaterial(new CANNON.ContactMaterial(
         barrierBodyMaterial, diceBodyMaterial, {friction: 0, restitution: 0.2}));
     world.addContactMaterial(new CANNON.ContactMaterial(
@@ -211,6 +212,7 @@ function createDiceBox() {
     //floor
     var groundShape = new CANNON.Plane();
     var groundBody = new CANNON.Body({ mass: 0, material: deskBodyMaterial });
+    groundBody.position.set(0,0,0).vadd(diceBoxLocation, groundBody.position);
     groundBody.addShape(groundShape);
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
     world.addBody(groundBody);
@@ -218,6 +220,7 @@ function createDiceBox() {
     //side1
     groundBody = new CANNON.Body({ mass: 0, material: barrierBodyMaterial});
     groundBody.position.set(0,wallPos,wallPos);
+    groundBody.position.set(0,wallPos,wallPos*4).vadd(diceBoxLocation, groundBody.position);
     groundBody.addShape(new CANNON.Plane());
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(0,1,0),Math.PI);
     world.addBody(groundBody);
@@ -225,6 +228,7 @@ function createDiceBox() {
     //side2
     groundBody = new CANNON.Body({ mass: 0, material: barrierBodyMaterial});
     groundBody.position.set(0,wallPos,-wallPos);
+    groundBody.position.set(0,wallPos,-wallPos*4).vadd(diceBoxLocation, groundBody.position);
     groundBody.addShape(new CANNON.Plane());
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(0,1,0),0);
     world.addBody(groundBody);
@@ -232,6 +236,7 @@ function createDiceBox() {
     //back
     groundBody = new CANNON.Body({ mass: 0, material: barrierBodyMaterial});
     groundBody.position.set(wallPos,wallPos,0);
+    groundBody.position.set(wallPos*5,wallPos,0).vadd(diceBoxLocation, groundBody.position);
     groundBody.addShape(new CANNON.Plane());
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(0,1,0),-Math.PI/2);
     world.addBody(groundBody);
@@ -239,6 +244,7 @@ function createDiceBox() {
     //front
     groundBody = new CANNON.Body({ mass: 0, material: barrierBodyMaterial});
     groundBody.position.set(-wallPos,wallPos,0);
+    groundBody.position.set(-wallPos,wallPos,0).vadd(diceBoxLocation, groundBody.position);
     groundBody.addShape(new CANNON.Plane());
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(0,1,0),Math.PI/2);
     // groundBody.quaternion.setFromEuler(Math.PI/9, Math.PI/2, 0, "YXZ");
@@ -246,7 +252,7 @@ function createDiceBox() {
 
     //top
     groundBody = new CANNON.Body({ mass: 0, material: barrierBodyMaterial });
-    groundBody.position.set(0,20,0);
+    groundBody.position.set(0,20,0).vadd(diceBoxLocation, groundBody.position);
     groundBody.addShape(new CANNON.Plane());
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),Math.PI/2);
     world.addBody(groundBody);
