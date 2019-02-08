@@ -33,7 +33,7 @@
                 grid-column: 1 / span 20;
                 display: flex;
                 flex-direction: column;
-                justify-content: center;
+                justify-content: flex-end;
                 align-items: flex-start;
                 background-color: orange;
             }
@@ -44,8 +44,12 @@
 
             table {
                 margin-left: 20px;
-                margin-bottom: 20px;
+                margin-bottom: 30px;
                 font-size: 3vh;
+            }
+
+            .lowerTable {
+                margin-bottom: 230px;
             }
 
             .hidden {
@@ -123,7 +127,7 @@
                             <td id="resultChance-7"></td>
                         </tr>
                     </table>
-                    <table>
+                    <table class="lowerTable">
                         <tr>
                             <th>8</th>
                             <th>9</th>
