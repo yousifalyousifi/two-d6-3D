@@ -56,7 +56,7 @@
                 font-size: 50px;
             }
 
-            #result {
+            #resultContainer {
                 grid-row: 14 / span 3;
                 grid-column: 1 / span 20;
                 text-align: center;
@@ -74,12 +74,26 @@
                 font-size: 3vh;
                 grid-area: 19 / 2 / span 1 / span 7;
             }
+
+            .flash {
+              background-color: none;
+              animation-name: resultHighlight;
+              animation-duration: 4s;
+              padding: 5px 25px 5px 25px;
+              border-radius: 25px;
+            }
+
+            @keyframes resultHighlight {
+              0%   {background-color: none;}
+              5%  {background-color: white;}
+              100%  {background-color: none;}
+            }
         </style>
     </head>
     <body>
         <div id="container" class="container">
             <div id="overlay" class="overlay">
-                <div id="result"></div>
+                <div id="resultContainer"><span id="result"></span></div>
                 <div id="statsOverlay" class="hidden">
                     <span id="total">Total count: 0</span>
                     <table>

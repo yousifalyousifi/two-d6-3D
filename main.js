@@ -7,6 +7,7 @@ var result = document.getElementById("result");
 var statsVisible = false;
 
 rollButton.addEventListener("click", function() {
+	result.classList.remove("flash")
 	roll(resultsIntervalCallback, resultsFinalCallBack);
 });
 
@@ -14,8 +15,10 @@ showStatsButton.addEventListener("click", function() {
 	statsVisible = !statsVisible;
 	if(statsVisible) {
 		statsOverlay.classList.remove("hidden")
+		showStatsButton.innerHTML = "Hide Stats"
 	} else {
 		statsOverlay.classList.add("hidden")
+		showStatsButton.innerHTML = "Show Stats"
 	}
 });
 
@@ -32,6 +35,7 @@ function resultsFinalCallBack(results) {
 	updateTotalText();
 	updateCountTextFor(sum);
 	updateChances();
+	result.classList.add("flash")
 }
 
 function updateTotalText() {
