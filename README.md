@@ -7,6 +7,9 @@ Shown below is a table of results for many dice rolls. You can tell what the ran
 
 <img src="http://you-sif.com/github/twod63d-screens.png" width="600">
 
+<img src="http://you-sif.com/github/twod63d-table.png" width="300">
+Source: https://wizardofodds.com/gambling/dice/
+
 ---
 
 **Videos:**
