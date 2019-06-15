@@ -22,12 +22,10 @@ showStatsButton.addEventListener("click", function() {
 	}
 });
 
-
 function resultsIntervalCallback(results) {
 	let sum = results[0] + results[1];
 	result.innerHTML = sum;
 }
-
 
 function resultsFinalCallBack(results) {
 	let sum = results[0] + results[1];
@@ -59,7 +57,8 @@ function updateChances() {
 	}
 }
 
-//Random distribution test
+////Random distribution test
 // setInterval(function() {
+// 	result.classList.remove("flash")
 // 	roll(resultsIntervalCallback, resultsFinalCallBack);
 // }, 4000)

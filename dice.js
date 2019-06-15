@@ -457,7 +457,7 @@ function animate() {
 }
 
 function updatePhysics(){
-    world.step(dt * 2.0);
+    world.step(dt * 3.0);
     for(var i=0; i !== meshes.length; i++){
         meshes[i].position.copy(bodies[i].position);
         meshes[i].quaternion.copy(bodies[i].quaternion);
